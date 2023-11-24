@@ -10,7 +10,7 @@ You can create the Python environment by passing the following lines of codes in
 
 `conda create --name nsvq python=3.8`  
 `pip install torch==1.8.1`  
-`pip install numpy=1.20.2`
+`pip install numpy==1.20.2`
 
 The requirements to use the NSVQ class is not that much strict, becuase the functions used in the code are so basic such that they also work with higher PyTorch and Numpy versions.
 
