@@ -19,6 +19,7 @@ The requirements to use the NSVQ class is not that much strict, becuase the func
 - `NSVQ.py`: contains the main class of Noise Substitution in Vector Quantization (NSVQ)
 - `train.py`: an example showing how to use and optimize NSVQ to learn a Normal distribution
 - `plot_training_logs.py`: plots the training logs (which was saved druring execution of "train.py") in a pdf file
+Due to some limitations of TensorBoard, we prefered our own custom logging function (plot_training_logs.py).
 
 # **Important: Codebook Replacement**
 
