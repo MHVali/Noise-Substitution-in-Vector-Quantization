@@ -1,12 +1,9 @@
 import torch
 import torch.distributions.normal as normal_dist
 import torch.distributions.uniform as uniform_dist
-import numpy as np
 
 class NSVQ(torch.nn.Module):
-    def __init__(self, num_embeddings, embedding_dim, num_epochs, num_training_samples, batch_size, device,
-                 discarding_threshold=0.01, num_first_cbr=10, first_cbr_coefficient=0.005, second_cbr_coefficient=0.03,
-                 initialization='normal'):
+    def __init__(self, num_embeddings, embedding_dim, device=torch.device('cpu'), discarding_threshold=0.01, initialization='normal'):
         super(NSVQ, self).__init__()
 
         """
@@ -16,155 +13,166 @@ class NSVQ(torch.nn.Module):
         
         2. embedding_dim = Embedding dimension (dimensionality of each input data sample or codebook entry)
         
-        3. num_epochs = Total number of epochs for training (one epoch corresponds to fetching whole train set)
-        
-        4. num_training_samples = Total number of samples in train set
-        
-        5. batch_size = Number of data samples in one training batch
-        
-        6. device = The device which executes the code (CPU or GPU)
+        3. device = The device which executes the code (CPU or GPU)
         
         ########## change the following inputs based on your application ##########
         
-        7. discarding_threshold = Percentage threshold for discarding unused codebooks
+        4. discarding_threshold = Percentage threshold for discarding unused codebooks
         
-        8. num_first_cbr = Number of times to perform codebook replacement function in the first codebook replacement 
-                            period                
-        9. first_cbr_coefficient = Coefficient which determines num of batches for the first codebook replacement cycle
-        
-        10. second_cbr_coefficient = Coefficient which determines num of batches for the second codebook replacement cycle
-        
-        11. initialization = initial distribution for codebooks
+        5. initialization = Initial distribution for codebooks
+
         """
 
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
-        self.batch_counter = 0
-        self.eps = 1e-12
         self.device = device
-
-        self.num_epochs = num_epochs
-        self.num_training_samples = num_training_samples
-        self.batch_size = batch_size
-
-        self.num_total_updates = np.floor((num_training_samples/batch_size) * num_epochs)
-        self.first_cbr_cycle = np.floor(first_cbr_coefficient * self.num_total_updates)
-        self.first_cbr_period = num_first_cbr * self.first_cbr_cycle
-        self.second_cbr_cycle = np.floor(second_cbr_coefficient * self.num_total_updates)
         self.discarding_threshold = discarding_threshold
-        # Index of transition batch between first and second codebook replacement periods
-        self.transition_value = (np.ceil(self.first_cbr_period/self.second_cbr_cycle) + 1) * self.second_cbr_cycle
+        self.eps = 1e-12
 
         if initialization == 'normal':
             codebooks = torch.randn(self.num_embeddings, self.embedding_dim, device=device)
-
         elif initialization == 'uniform':
-            codebooks = uniform_dist.Uniform(-1 / self.num_embeddings, 1 / self.num_embeddings).sample(
-                [self.num_embeddings, self.embedding_dim])
-
+            codebooks = uniform_dist.Uniform(-1 / self.num_embeddings, 1 / self.num_embeddings).sample([self.num_embeddings, self.embedding_dim])
         else:
             raise ValueError("initialization should be one of the 'normal' and 'uniform' strings")
 
         self.codebooks = torch.nn.Parameter(codebooks, requires_grad=True)
 
-        weights = (torch.ones(self.embedding_dim, device=device) + (1e-4 *
-                       torch.randn(self.embedding_dim, device=device))) / self.embedding_dim
-        self.weights = torch.nn.Parameter(weights, requires_grad=True)
-
-        # Counter variable which contains number of times each codebook is used
+        # Counter variable which contains the number of times each codebook is used
         self.codebooks_used = torch.zeros(self.num_embeddings, device=device)
 
-    def forward(self,input):
+    def forward(self, input_data):
 
         """
-        This function performs the main proposed vector quantization function.
+        This function performs the main proposed vector quantization function using NSVQ trick to pass the gradients.
+        Use this forward function for training phase.
 
         N: number of input data samples
         K: num_embeddings (number of codebook entries)
         D: embedding_dim (dimensionality of each input data sample or codebook entry)
 
-        input: input (input data matrix which is going to be vector quantized | shape: (NxD) )
-        output: quantized_input (vector quantized version of input data matrix | shape: (NxD) )
+        input: input_data (input data matrix which is going to be vector quantized | shape: (NxD) )
+        outputs:
+                quantized_input (vector quantized version of input data used for training | shape: (NxD) )
+                perplexity (average usage of codebook entries)
         """
 
-        weights_abs = torch.abs(self.weights)
-
-        # apply weighting to the embedding dimensions
-        weighted_input = input * weights_abs
-        weighted_codebooks = (self.codebooks * weights_abs).t()
-
         # compute the distances between input and codebooks vectors
-        distances = ( torch.sum(weighted_input ** 2, dim=1, keepdim=True)
-                    - 2 * (torch.matmul(weighted_input,weighted_codebooks))
-                    + torch.sum(weighted_codebooks ** 2, dim=0, keepdim=True) )
+        distances = (torch.sum(input_data ** 2, dim=1, keepdim=True)
+                     - 2 * (torch.matmul(input_data, self.codebooks.t()))
+                     + torch.sum(self.codebooks.t() ** 2, dim=0, keepdim=True))
 
         min_indices = torch.argmin(distances, dim=1)
 
-        best_entries = self.codebooks[min_indices]
-        random_vector = normal_dist.Normal(0, 1).sample(input.shape).to(self.device)
+        hard_quantized_input = self.codebooks[min_indices]
+        random_vector = normal_dist.Normal(0, 1).sample(input_data.shape).to(self.device)
 
-        norm_best_entries = (weights_abs * (input - best_entries)).square().sum(dim=1, keepdim=True).sqrt()
+        norm_quantization_residual = (input_data - hard_quantized_input).square().sum(dim=1, keepdim=True).sqrt()
         norm_random_vector = random_vector.square().sum(dim=1, keepdim=True).sqrt()
 
         # defining vector quantization error
-        vq_error = ((norm_best_entries / norm_random_vector + self.eps) * random_vector) * (1/ (weights_abs + self.eps))
+        vq_error = (norm_quantization_residual / norm_random_vector + self.eps) * random_vector
 
-        quantized_input = input + vq_error
+        quantized_input = input_data + vq_error
+
+        # claculating the perplexity (average usage of codebook entries)
+        encodings = torch.zeros(input_data.shape[0], self.num_embeddings, device=input_data.device)
+        encodings.scatter_(1, min_indices.reshape([-1, 1]), 1)
+        avg_probs = torch.mean(encodings, dim=0)
+        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + self.eps)))
 
         with torch.no_grad():
             self.codebooks_used[min_indices] += 1
-            self.batch_counter += 1
 
-        # Checking whether it is the time to perform codebook replacement
-        if ((self.batch_counter % self.first_cbr_cycle == 0) & (self.batch_counter <= self.first_cbr_period)):
-            self.replace_unused_codebooks(self.first_cbr_cycle)
-
-        if self.batch_counter == self.transition_value:
-            self.replace_unused_codebooks(np.remainder(self.transition_value, self.first_cbr_period))
-
-        if ((self.batch_counter % self.second_cbr_cycle == 0) &
-                (self.transition_value < self.batch_counter <= self.num_total_updates - self.second_cbr_cycle)):
-            self.replace_unused_codebooks(self.second_cbr_cycle)
-
-        return quantized_input
+        # use the first returned tensor "quantized_input" for training phase (Notice that you do not have to use the
+        # tensor "quantized_input" for inference (evaluation) phase)
+        # Also notice you do not need to add a new loss term (for VQ) to your global loss function to optimize codebooks.
+        # Just return the tensor of "quantized_input" as vector quantized version of the input data.
+        return quantized_input, perplexity, min_indices
 
 
     def replace_unused_codebooks(self, num_batches):
 
         """
-        This function gets the number of batches as input and replaces the codebooks which are used less than a
-        threshold percentage (discarding_threshold) during these number of batches with the active (used) codebooks
+        This function is used to replace the inactive codebook entries with the active ones, to make all codebooks
+        entries to be used for training. The function has to be called periodically with the periods of "num_batches".
+        For more details, the function waits for "num_batches" training batches and then discards the codebook entries
+        which are used less than a specified percentage (self.discard_threshold) during this period, and replace them
+        with the codebook entries which were used (active).
 
-        input: num_batches (number of batches during which we determine whether the codebook is used or unused)
+        Recommendation: Call this function after a specific number of training batches. In the beginning the number of
+         replaced codebooks might increase. However, the main trend must be decreasing after some training time.
+         If it is not the case for you, increase the "num_batches" or decrease the "discarding_threshold" to make
+         the trend for number of replacements decreasing. Stop calling the function at the latest stages of training
+         in order not to introduce new codebook entries which would not have the right time to be tuned and optimized
+         until the end of training.
+
+        Play with "self.discard_threshold" value and the period ("num_batches") you call the function. A common trend
+        could be to select the self.discard_threshold from the range [0.01-0.1] and the num_batches from the set
+        {100,500,1000,...}. For instance, as a commonly used case, if we set the self.discard_threshold=0.01 and
+        num_batches=100, it means that you want to discard the codebook entries which are used less than 1 percent
+        during 100 training batches. Remember you have to set the values for "self.discard_threshold" and "num_batches"
+        in a logical way, such that the number of discarded codebook entries have to be in a decreasing trend during
+        the training phase.
+
+        :param num_batches: period of training batches that you want to replace inactive codebooks with the active ones
+
         """
 
         with torch.no_grad():
 
-            unused_indices = (self.codebooks_used / num_batches) < self.discarding_threshold
-            used_indices = (self.codebooks_used / num_batches) >= self.discarding_threshold
+            unused_indices = torch.where((self.codebooks_used.cpu() / num_batches) < self.discarding_threshold)[0]
+            used_indices = torch.where((self.codebooks_used.cpu() / num_batches) >= self.discarding_threshold)[0]
 
-            unused_count = sum(unused_indices)
-            used_count = sum(used_indices)
+            unused_count = unused_indices.shape[0]
+            used_count = used_indices.shape[0]
 
             if used_count == 0:
-                print(f'####### used codebooks equals zero / modifying whole codebooks #######')
-                self.codebooks += self.eps * torch.randn(self.codebooks.size(), device=self.device)
-
+                print(f'####### used_indices equals zero / shuffling whole codebooks ######')
+                self.codebooks += self.eps * torch.randn(self.codebooks.size(), device=self.device).clone()
             else:
-                used = self.codebooks[used_indices]
-
+                used = self.codebooks[used_indices].clone()
                 if used_count < unused_count:
-                    # repeat the used codebooks matrix until it reaches the unused_count size
-                    used_codebooks = used.repeat(int(torch.ceil(unused_count / used_count)), 1)
-                    # shuffling the rows of used codebooks
+                    used_codebooks = used.repeat(int((unused_count / (used_count + self.eps)) + 1), 1)
                     used_codebooks = used_codebooks[torch.randperm(used_codebooks.shape[0])]
-
                 else:
                     used_codebooks = used
 
                 self.codebooks[unused_indices] *= 0
                 self.codebooks[unused_indices] += used_codebooks[range(unused_count)] + self.eps * torch.randn(
-                    (unused_count, self.codebooks.shape[1]), device=self.device)
+                    (unused_count, self.embedding_dim), device=self.device).clone()
 
-            print(f'************* ' + str(unused_count.item()) + f' codebooks replaced *************')
+            print(f'************* Replaced ' + str(unused_count) + f' codebooks *************')
             self.codebooks_used[:] = 0.0
+
+
+    def inference(self, input_data):
+
+        """
+        This function performs the vector quantization function for inference (evaluation) time (after training).
+        This function should not be used during training.
+
+        N: number of input data samples
+        K: num_embeddings (number of codebook entries)
+        D: embedding_dim (dimensionality of each input data sample or codebook entry)
+
+        input: input_data (input data matrix which is going to be vector quantized | shape: (NxD) )
+        outputs:
+                quantized_input (vector quantized version of input data used for inference (evaluation) | shape: (NxD) )
+        """
+
+        input_data = input_data.detach().clone()
+        codebooks = self.codebooks.detach().clone()
+        ###########################################
+
+        distances = (torch.sum(input_data ** 2, dim=1, keepdim=True)
+                     - 2 * (torch.matmul(input_data, codebooks.t()))
+                     + torch.sum(codebooks.t() ** 2, dim=0, keepdim=True))
+
+        min_indices = torch.argmin(distances, dim=1)
+        quantized_input = codebooks[min_indices]
+
+        #use the tensor "quantized_input" as vector quantized version of your input data for inference (evaluation) phase.
+        return quantized_input
+
+
