@@ -67,7 +67,7 @@ for iter in range(num_training_batches):
 
 
 save_address = './output/'
-os.makedirs(save_address)
+os.makedirs(save_address, exist_ok=True)
 np.save(save_address + f'total_vq_loss_{vq_bitrate}bits_bs{batch_size}_lr{learning_rate}.npy', np.asarray(total_vq_loss))
 np.save(save_address + f'total_perplexity_{vq_bitrate}bits_bs{batch_size}_lr{learning_rate}.npy', np.asarray(total_perplexity))
 np.save(save_address + f'codebook_usage_{vq_bitrate}bits_bs{batch_size}_lr{learning_rate}.npy', used_codebook_indices)
