@@ -2,6 +2,14 @@
 
 This repository contains PyTorch implementation of the NSVQ technique, which solves the gradient collapse problem when using Vector Quantization (VQ) function in a neural network. In other words, the technique passes gradients through VQ module when backpropagating through a neural network. The technique is published as the paper [NSVQ: Noise Substitution in Vector Quantization for Machine Learning](https://ieeexplore.ieee.org/abstract/document/9696322) in IEEE Access journal, January 2022. You can find **a short explanation of the paper** in [this medium post](https://medium.com/p/915f5814b5ce).
 
+# **Contents of this repository**
+
+- `NSVQ.py`: contains the main class of Noise Substitution in Vector Quantization (NSVQ)
+- `train.py`: an example showing how to use and optimize NSVQ to learn a Normal distribution
+- `plot_training_logs.py`: plots the training logs (which was saved druring execution of "train.py") in a pdf file
+
+Due to some limitations of TensorBoard, we prefered our own custom logging function (plot_training_logs.py).
+
 # **Required packages**
 - Python (version: 3.8)
 - PyTorch (version: 1.8.1)
@@ -17,14 +25,6 @@ You can create the Python environment by passing the following lines of codes in
 `pip install matplotlib==3.6`
 
 The requirements to use this repository is not that much strict, becuase the functions used in the code are so basic such that they also work with higher Python, PyTorch and Numpy versions.
-
-# **Contents of this repository**
-
-- `NSVQ.py`: contains the main class of Noise Substitution in Vector Quantization (NSVQ)
-- `train.py`: an example showing how to use and optimize NSVQ to learn a Normal distribution
-- `plot_training_logs.py`: plots the training logs (which was saved druring execution of "train.py") in a pdf file
-
-Due to some limitations of TensorBoard, we prefered our own custom logging function (plot_training_logs.py).
 
 # **Important: Codebook Replacement**
 
