@@ -46,7 +46,7 @@ Mohammad Hassan Vali and Tom Bäckström, “NSVQ: Noise Substitution in Vector 
 
 ```bibtex
 @article{vali2022nsvq,
-  title={NSVQ: Noise Substitution in Vector Quantization for Machine Learning},
+  title={NSVQ: {N}oise {S}ubstitution in {V}ector {Q}uantization for {M}achine {L}earning},
   author={Vali, Mohammad Hassan and Bäckström, Tom},
   journal={IEEE Access},
   volume={10},
