@@ -11,7 +11,7 @@ This repository contains PyTorch implementation of the NSVQ technique, which sol
 Due to some limitations of TensorBoard, we prefered our own custom logging function (plot_training_logs.py).
 
 # **Required packages**
-- Python (version: 3.8)
+- Python (version: 3.8 or higher)
 - PyTorch (version: 1.8.1)
 - Numpy (version: 1.20.2)  
 - Matplotlib (version: 3.6)
