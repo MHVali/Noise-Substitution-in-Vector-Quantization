@@ -71,7 +71,7 @@ class NSVQ(torch.nn.Module):
         norm_random_vector = random_vector.square().sum(dim=1, keepdim=True).sqrt()
 
         # defining vector quantization error
-        vq_error = (norm_quantization_residual / norm_random_vector + self.eps) * random_vector
+        vq_error = (norm_quantization_residual / (norm_random_vector + self.eps)) * random_vector
 
         quantized_input = input_data + vq_error
 
