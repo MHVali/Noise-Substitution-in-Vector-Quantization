@@ -67,8 +67,8 @@ class NSVQ(torch.nn.Module):
         hard_quantized_input = self.codebooks[min_indices]
         random_vector = normal_dist.Normal(0, 1).sample(input_data.shape).to(self.device)
 
-        norm_quantization_residual = (input_data - hard_quantized_input).square().sum(dim=1, keepdim=True).sqrt()
-        norm_random_vector = random_vector.square().sum(dim=1, keepdim=True).sqrt()
+        norm_quantization_residual = torch.linalg.norm(input_data - hard_quantized_input, dim=1, keepdim=True)
+        norm_random_vector = torch.linalg.norm(random_vector, dim=1, keepdim=True)
 
         # defining vector quantization error
         vq_error = (norm_quantization_residual / (norm_random_vector + self.eps)) * random_vector
