@@ -15,21 +15,18 @@ This repository contains PyTorch implementation of the NSVQ technique, which sol
 
 Due to some limitations of TensorBoard, we prefered our own custom logging function (plot_training_logs.py).
 
-# **Required packages**
-- Python (version: 3.8 or higher)
-- PyTorch (version: 1.8.1)
-- Numpy (version: 1.20.2)  
-- Matplotlib (version: 3.6)
+# **Requirements**
+You can create the conda environment by passing the following lines of codes in your terminal in the following order:
 
-You can create the Python environment by passing the following lines of codes in your terminal window in the following order:
+```bash
+conda create --name nsvq python=3.8  
+conda activate nsvq
+pip install torch==1.8.1
+pip install numpy==1.20.2
+pip install matplotlib==3.6
+```
 
-`conda create --name nsvq python=3.8`  
-`conda activate nsvq`  
-`pip install torch==1.8.1`  
-`pip install numpy==1.20.2`  
-`pip install matplotlib==3.6`
-
-The requirements to use this repository is not that much strict, becuase the functions used in the code are so basic such that they also work with higher Python, PyTorch and Numpy versions.
+The requirements to use this repository is not that much strict, becuase the functions used in the code are basic such that they also work with higher Python, PyTorch and Numpy versions.
 
 # **Important: Codebook Replacement**
 
@@ -49,14 +46,13 @@ Machine learning algorithms have been shown to be highly effective in solving op
 
 Mohammad Hassan Vali and Tom Bäckström, “NSVQ: Noise Substitution in Vector Quantization for Machine Learning,” IEEE Access, vol. 10, pp. 13598–13610, 2022.
 
-```bibtex
+```
 @article{vali2022nsvq,
-  title={NSVQ: {N}oise {S}ubstitution in {V}ector {Q}uantization for {M}achine {L}earning},
-  author={Vali, Mohammad Hassan and Bäckström, Tom},
+  title={{NSVQ}: Noise Substitution in Vector Quantization for Machine Learning},
+  author={Vali, Mohammad Hassan and B{\"a}ckstr{\"o}m, Tom},
   journal={IEEE Access},
   volume={10},
   pages={13598--13610},
-  year={2022},
-  publisher={IEEE}
+  year={2022}
 }
 ```
