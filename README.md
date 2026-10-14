@@ -2,6 +2,9 @@
 
 This repository contains PyTorch implementation of the NSVQ technique, which solves the gradient collapse problem when using Vector Quantization (VQ) function in a neural network. In other words, the technique passes gradients through VQ module when backpropagating through a neural network. The technique is published as the paper [NSVQ: Noise Substitution in Vector Quantization for Machine Learning](https://ieeexplore.ieee.org/abstract/document/9696322) in IEEE Access journal, January 2022. You can find **a short explanation of the paper** in [this medium post](https://medium.com/p/915f5814b5ce).
 
+> [!TIP]
+> To use NSVQ as vector quantizer in your model, you can use the provided `nsvq` [PyPI package](https://pypi.org/project/nsvq/) that is installable by running `pip install nsvq`. For more details and documentation, please look into the package.
+
 ![alt text](https://raw.githubusercontent.com/MHVali/Noise-Substitution-in-Vector-Quantization/main/nsvq_teaser.png)
 
 # **Contents of this repository**
