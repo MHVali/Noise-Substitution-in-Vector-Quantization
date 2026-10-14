@@ -6,7 +6,7 @@ This repository contains PyTorch implementation of the NSVQ technique, which sol
 > To use NSVQ as vector quantizer in your model, you can use the provided `nsvq` [PyPI package](https://pypi.org/project/nsvq/) that is installable by running `pip install nsvq`. For more details and documentation, please look into the package.
 
 > [!TIP]
-> [DiVeQ](https://github.com/AaltoML/DiVeQ) is an improved successor of NSVQ method, which is available as `diveq` [PyPI package](https://pypi.org/project/nsvq/) and installable by `pip install diveq`.
+> [DiVeQ](https://github.com/AaltoML/DiVeQ) is an improved successor of NSVQ method, which is available as `diveq` [PyPI package](https://pypi.org/project/diveq/) and installable by `pip install diveq`.
 
 ![alt text](https://raw.githubusercontent.com/MHVali/Noise-Substitution-in-Vector-Quantization/main/nsvq_teaser.png)
 
